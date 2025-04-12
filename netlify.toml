@@ -9,3 +9,7 @@
   directory = "/netlify/functions/"
   # Optional: Specify Python runtime version if needed
   # runtime = "python3.9"
+
+# Add this section or variable
+[build.environment]
+  PYTHON_VERSION = "3.11"
