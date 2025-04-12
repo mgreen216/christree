@@ -6,6 +6,6 @@
 
 [functions]
   # Directory where Netlify should look for function files
-  directory = "netlify/functions/"
+  directory = "/netlify/functions/"
   # Optional: Specify Python runtime version if needed
   # runtime = "python3.9"
