@@ -1,1 +1,11 @@
+# netlify.toml
+[build]
+  # Set this to the directory containing your index.html
+  # If index.html is in the root, use "/"
+  publish = "/"
 
+[functions]
+  # Directory where Netlify should look for function files
+  directory = "netlify/functions/"
+  # Optional: Specify Python runtime version if needed
+  # runtime = "python3.9"
