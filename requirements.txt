@@ -1,4 +1,5 @@
 # requirements.txt
 Flask
 Flask-Cors
-requests
+requests # Keep for now, might remove if not needed elsewhere
+redis # Add this line
