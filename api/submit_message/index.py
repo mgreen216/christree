@@ -1,32 +1,29 @@
 # /api/submit_message.py
 
-print("Loading /api/submit_message.py module...") # Check if file loads
+print("Loading /api/submit_message.py module (Vercel KV Version)...")
 
 try:
     from flask import Flask, request, jsonify
     from flask_cors import CORS
     import datetime
     import os
-    import google.auth
-    from googleapiclient.discovery import build
-    from googleapiclient.errors import HttpError
-    print("Imports successful.") # Check imports
+    import requests # To interact with Vercel KV REST API
+    import json     # To format data for KV
+    import uuid     # To generate unique keys for messages
+    print("Imports successful.")
 except ImportError as import_err:
-    print(f"FATAL IMPORT ERROR: {import_err}") # Log import errors
-    # If imports fail, the app object won't be created, potentially causing 404
-    raise # Re-raise to ensure Vercel sees the failure
+    print(f"FATAL IMPORT ERROR: {import_err}")
+    raise
 
 # --- Configuration ---
-print("Reading environment variables...")
-SPREADSHEET_ID = os.environ.get('SPREADSHEET_ID')
-SHEET_RANGE_NAME = os.environ.get('SHEET_RANGE_NAME', 'Sheet1!A:B')
-# GOOGLE_APPLICATION_CREDENTIALS content expected in env var
-print(f"SPREADSHEET_ID found: {'Yes' if SPREADSHEET_ID else 'No'}")
-print(f"SHEET_RANGE_NAME: {SHEET_RANGE_NAME}")
-# Avoid printing credentials content, just check presence
-creds_env_var = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')
-print(f"GOOGLE_APPLICATION_CREDENTIALS set: {'Yes' if creds_env_var else 'No'}")
+print("Reading environment variables for Vercel KV...")
+# These are automatically provided by Vercel when a KV store is linked
+KV_REST_API_URL = os.environ.get('KV_REST_API_URL')
+KV_REST_API_TOKEN = os.environ.get('KV_REST_API_TOKEN')
+# KV_REST_API_READ_ONLY_TOKEN = os.environ.get('KV_REST_API_READ_ONLY_TOKEN') # Not needed for writing
 
+print(f"KV_REST_API_URL set: {'Yes' if KV_REST_API_URL else 'No'}")
+print(f"KV_REST_API_TOKEN set: {'Yes' if KV_REST_API_TOKEN else 'No'}")
 
 # --- Initialize Flask App ---
 print("Initializing Flask app...")
@@ -44,68 +41,19 @@ print(f"Configuring CORS for origins: {ALLOWED_ORIGINS}")
 CORS(app, resources={r"/api/*": {"origins": ALLOWED_ORIGINS}})
 print("CORS configured.")
 
-# --- Google Sheets API Setup ---
-SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
-sheets_service = None
-
-def get_sheets_service():
-    """Authenticates and returns a Google Sheets service object."""
-    global sheets_service
-    if sheets_service:
-        print("Reusing existing Sheets service instance.")
-        return sheets_service
-    try:
-        print("Attempting Google Auth default...")
-        # Ensure GOOGLE_APPLICATION_CREDENTIALS env var contains JSON content
-        creds, _ = google.auth.default(scopes=SCOPES)
-        print("Google Auth successful. Building Sheets service...")
-        service = build('sheets', 'v4', credentials=creds, cache_discovery=False)
-        print("Google Sheets service built successfully.")
-        sheets_service = service
-        return service
-    except Exception as e:
-        print(f"ERROR authenticating/building Google Sheets service: {e}")
-        raise # Re-raise
-
-# Initialize service on load
-print("Attempting initial Google Sheets service initialization...")
-try:
-    get_sheets_service()
-    print("Initial Google Sheets service initialization successful.")
-except Exception as startup_e:
-    # Log warning but allow app object creation
-    print(f"WARNING: Could not initialize Google Sheets service on startup: {startup_e}")
-
+# --- No Google Sheets Setup Needed ---
 
 # --- API Endpoint Definition ---
-print("Defining Flask route / ...") # Using '/' route
-# Vercel maps requests for /api/submit_message to this file,
-# Flask handles the '/' route within this file's context.
+print("Defining Flask route / ...")
 @app.route('/', methods=['POST'])
 def submit_message_route():
-    """ Flask route handler """
-    print("\n--- Request received ---") # Log request entry
+    """ Flask route handler to receive messages and save to Vercel KV """
+    print("\n--- Request received (KV Version) ---")
 
-    # Get service instance (might re-auth if initial failed or instance expired)
-    print("Getting Sheets service instance for request...")
-    # Use a try-except block here as well in case initial load failed
-    try:
-        service = get_sheets_service()
-        if not service:
-             # This case might happen if initial load failed and wasn't re-attempted
-             print("ERROR: Sheets service still not available for request.")
-             return jsonify({'status': 'error', 'message': 'Server configuration error (Sheets API not initialized).'}), 500
-    except Exception as req_auth_e:
-         print(f"ERROR during request-time auth/get_sheets_service: {req_auth_e}")
-         return jsonify({'status': 'error', 'message': 'Server configuration error (Sheets API Auth).'}), 500
-    print("Sheets service obtained.")
-
-    # Check environment variables again
-    if not SPREADSHEET_ID:
-        print("ERROR: SPREADSHEET_ID env var missing.")
-        return jsonify({'status': 'error', 'message': 'Server configuration error (Spreadsheet ID).'}), 500
-    print(f"Using SPREADSHEET_ID: {SPREADSHEET_ID}")
-    print(f"Using SHEET_RANGE_NAME: {SHEET_RANGE_NAME}")
+    # Check if KV environment variables are present
+    if not KV_REST_API_URL or not KV_REST_API_TOKEN:
+        print("ERROR: Vercel KV environment variables not configured.")
+        return jsonify({'status': 'error', 'message': 'Server configuration error (KV Store).'}), 500
 
     try:
         print("Attempting to get JSON data from request...")
@@ -121,47 +69,54 @@ def submit_message_route():
              return jsonify({'status': 'error', 'message': 'Invalid data: Message cannot be empty.'}), 400
         print(f"Validated message: {message_text}")
 
+        # --- Prepare data for Vercel KV ---
         timestamp = datetime.datetime.now(datetime.timezone.utc).isoformat()
-        values_to_append = [[timestamp, message_text]]
-        body = {'values': values_to_append}
-        print(f"Prepared data for Sheets: {body}")
+        # Create a unique key for each message, e.g., using timestamp and a UUID
+        message_key = f"message:{timestamp}:{uuid.uuid4()}"
+        # Store timestamp and message together as a JSON string value
+        message_value = json.dumps({
+            "timestamp": timestamp,
+            "text": message_text
+        })
 
-        # --- Action: Append to Google Sheet ---
-        print(f"Attempting to append to Sheet...")
+        # --- Action: Save to Vercel KV using REST API SET command ---
+        # Ref: https://vercel.com/docs/storage/vercel-kv/rest-api#set
+        kv_set_url = f"{KV_REST_API_URL}/set/{message_key}"
+        headers = {
+            'Authorization': f'Bearer {KV_REST_API_TOKEN}'
+        }
+
+        print(f"Attempting to save to Vercel KV: Key={message_key}")
         try:
-            # --- TEMPORARY SIMPLIFICATION (Optional): Comment out the actual API call ---
-            # print(">>> Skipping actual Sheets API call for testing <<<")
-            # result = {'updates': {'updatedCells': 'SKIPPED'}} # Fake result
-            # --- UNCOMMENT BELOW TO RE-ENABLE ---
-            result = service.spreadsheets().values().append(
-                spreadsheetId=SPREADSHEET_ID, range=SHEET_RANGE_NAME,
-                valueInputOption='USER_ENTERED', insertDataOption='INSERT_ROWS',
-                body=body
-            ).execute()
-            print(f"Append result: {result.get('updates', {}).get('updatedCells', 'N/A')} cells updated.") # Safer get
+            response = requests.post(kv_set_url, headers=headers, data=message_value)
+            response.raise_for_status() # Raise an exception for bad status codes (4xx or 5xx)
 
-        except HttpError as error:
-            print(f"ERROR during Sheets API call: {error}")
-            error_details = "N/A"
-            if hasattr(error, 'resp') and error.resp:
-                 error_details = error.resp.get('content', '{}')
-            print(f"Error details: {error_details}")
-            return jsonify({'status': 'error', 'message': f'Google Sheets API Error: Status {getattr(error.resp, "status", "Unknown")}'}), 500
-        except Exception as sheet_error:
-             print(f"ERROR appending to Google Sheet (non-API error): {sheet_error}")
-             return jsonify({'status': 'error', 'message': 'Failed to save message to sheet.'}), 500
+            response_json = response.json()
+            print(f"Vercel KV SET Response: {response_json}")
+            if response_json.get("result") != "OK":
+                 print(f"ERROR: Vercel KV SET command did not return OK. Response: {response_json}")
+                 return jsonify({'status': 'error', 'message': 'Failed to save message to KV store (non-OK response).'}), 500
 
-        print(f"Successfully processed message: {message_text}")
+        except requests.exceptions.RequestException as req_error:
+             print(f"ERROR during Vercel KV API call: {req_error}")
+             # Attempt to get more details from response if available
+             error_details = "N/A"
+             if req_error.response is not None:
+                  error_details = req_error.response.text
+             print(f"Error details: {error_details}")
+             return jsonify({'status': 'error', 'message': f'KV Store API Error: {req_error}'}), 500
+        except Exception as kv_error:
+             print(f"ERROR saving to Vercel KV (non-API error): {kv_error}")
+             return jsonify({'status': 'error', 'message': 'Failed to save message to KV store.'}), 500
+
+        print(f"Successfully saved message to Vercel KV: Key={message_key}")
         return jsonify({'status': 'success', 'message': 'Message received and saved successfully.'}), 200
 
     except Exception as e:
         print(f"ERROR processing request: {e}")
-        # Log the full traceback for unexpected errors
         import traceback
         traceback.print_exc()
         return jsonify({'status': 'error', 'message': 'An internal server error occurred.'}), 500
 
-print("Finished loading /api/submit_message.py module.") # Check if file loads completely
-
+print("Finished loading /api/submit_message.py module (KV Version).")
 # Vercel's runtime should automatically pick up the 'app' object.
-# No handler function or app.run() needed.
