@@ -69,7 +69,7 @@ except Exception as startup_e:
 # Vercel maps requests to /api/submit_message to this file.
 # Flask handles routing within the file. Keeping '/api/submit-message'
 # as the Flask route is fine, but not strictly necessary if it's the only route.
-@app.route('/api/submit-message', methods=['POST'])
+@app.route('/', methods=['POST'])
 def submit_message_route():
     """
     Flask route handler to receive messages and save to Google Sheets.
