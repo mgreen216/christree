@@ -56,6 +56,7 @@ def get_sheets_service():
         return sheets_service
     try:
         print("Attempting Google Auth default...")
+        # Ensure GOOGLE_APPLICATION_CREDENTIALS env var contains JSON content
         creds, _ = google.auth.default(scopes=SCOPES)
         print("Google Auth successful. Building Sheets service...")
         service = build('sheets', 'v4', credentials=creds, cache_discovery=False)
@@ -77,8 +78,9 @@ except Exception as startup_e:
 
 
 # --- API Endpoint Definition ---
-print("Defining Flask route / ...") # Updated print for clarity
-# Using '/' route as discussed, assuming Vercel handles mapping /api/submit_message to this file
+print("Defining Flask route / ...") # Using '/' route
+# Vercel maps requests for /api/submit_message to this file,
+# Flask handles the '/' route within this file's context.
 @app.route('/', methods=['POST'])
 def submit_message_route():
     """ Flask route handler """
@@ -86,13 +88,19 @@ def submit_message_route():
 
     # Get service instance (might re-auth if initial failed or instance expired)
     print("Getting Sheets service instance for request...")
-    service = get_sheets_service()
-    if not service:
-         print("ERROR: Sheets service not available for request.")
-         return jsonify({'status': 'error', 'message': 'Server configuration error (Sheets API not initialized).'}), 500
+    # Use a try-except block here as well in case initial load failed
+    try:
+        service = get_sheets_service()
+        if not service:
+             # This case might happen if initial load failed and wasn't re-attempted
+             print("ERROR: Sheets service still not available for request.")
+             return jsonify({'status': 'error', 'message': 'Server configuration error (Sheets API not initialized).'}), 500
+    except Exception as req_auth_e:
+         print(f"ERROR during request-time auth/get_sheets_service: {req_auth_e}")
+         return jsonify({'status': 'error', 'message': 'Server configuration error (Sheets API Auth).'}), 500
     print("Sheets service obtained.")
 
-    # Check environment variables again (in case they were missing on init)
+    # Check environment variables again
     if not SPREADSHEET_ID:
         print("ERROR: SPREADSHEET_ID env var missing.")
         return jsonify({'status': 'error', 'message': 'Server configuration error (Spreadsheet ID).'}), 500
@@ -102,7 +110,7 @@ def submit_message_route():
     try:
         print("Attempting to get JSON data from request...")
         data = request.get_json()
-        print(f"Received data: {data}") # Log received data (be careful with sensitive data in real apps)
+        print(f"Received data: {data}")
 
         if not data or 'message' not in data:
             print("ERROR: Invalid data, 'message' key missing.")
