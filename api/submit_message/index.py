@@ -39,23 +39,23 @@ print("CORS configured.")
 # Initialize as None, connection will be attempted on first request
 redis_client = None
 
-def get_redis_client():
-    """Initializes (if needed) and returns a Redis client connected to Upstash."""
-    global redis_client
-    # If client already exists (from a previous request in the same warm instance), reuse it
-    if redis_client:
-        print("Reusing existing Redis client instance.")
-        # Optional: Ping to ensure connection is still valid, though might add latency
-        # try:
-        #     redis_client.ping()
-        #     return redis_client
-        # except redis.exceptions.ConnectionError:
-        #     print("Existing Redis connection lost, will reconnect.")
-        #     redis_client = None # Force reconnect
-        # except Exception as ping_err:
-        #      print(f"Error pinging existing Redis connection: {ping_err}")
-        #      redis_client = None # Force reconnect
-        return redis_client # Return existing client for now
+# def get_redis_client():
+#     """Initializes (if needed) and returns a Redis client connected to Upstash."""
+#     global redis_client
+#     # If client already exists (from a previous request in the same warm instance), reuse it
+#     if redis_client:
+#         print("Reusing existing Redis client instance.")
+#         # Optional: Ping to ensure connection is still valid, though might add latency
+#         # try:
+#         #     redis_client.ping()
+#         #     return redis_client
+#         # except redis.exceptions.ConnectionError:
+#         #     print("Existing Redis connection lost, will reconnect.")
+#         #     redis_client = None # Force reconnect
+#         # except Exception as ping_err:
+#         #      print(f"Error pinging existing Redis connection: {ping_err}")
+#         #      redis_client = None # Force reconnect
+#         return redis_client # Return existing client for now
 
     # If no client or connection lost, try to connect
     if not UPSTASH_REDIS_URL:
@@ -93,17 +93,18 @@ def submit_message_route():
 
     # Get Redis client instance - connection attempt happens here if needed
     print("Getting Redis client instance for request...")
-    try:
-        r = get_redis_client()
-        # Check again after attempting connection
-        if not r:
-             print("ERROR: Failed to get Redis client during request.")
-             return jsonify({'status': 'error', 'message': 'Server configuration error (Redis connection).'}), 500
-    except Exception as req_conn_e:
-         # Catch errors from get_redis_client() if it fails here
-         print(f"ERROR getting Redis client during request: {req_conn_e}")
-         return jsonify({'status': 'error', 'message': 'Server configuration error (Redis connection).'}), 500
-    print("Redis client obtained.")
+    return jsonify({'status': 'success', 'message': 'Simplified test OK!'}), 200
+    # try:
+    #     r = get_redis_client()
+    #     # Check again after attempting connection
+    #     if not r:
+    #          print("ERROR: Failed to get Redis client during request.")
+    #          return jsonify({'status': 'error', 'message': 'Server configuration error (Redis connection).'}), 500
+    # except Exception as req_conn_e:
+    #      # Catch errors from get_redis_client() if it fails here
+    #      print(f"ERROR getting Redis client during request: {req_conn_e}")
+    #      return jsonify({'status': 'error', 'message': 'Server configuration error (Redis connection).'}), 500
+    # print("Redis client obtained.")
 
     # --- The rest of the route logic remains the same ---
     # Check SPREADSHEET_ID (Should be removed if only using Redis)
@@ -136,16 +137,16 @@ def submit_message_route():
         redis_list_key = "submitted_messages"
 
         print(f"Attempting to LPUSH to Redis list: {redis_list_key}")
-        try:
-            list_length = r.lpush(redis_list_key, message_data)
-            print(f"LPUSH successful. List '{redis_list_key}' new length: {list_length}")
+        # try:
+        #     list_length = r.lpush(redis_list_key, message_data)
+        #     print(f"LPUSH successful. List '{redis_list_key}' new length: {list_length}")
 
-        except redis.exceptions.RedisError as redis_err:
-             print(f"ERROR during Redis command: {redis_err}")
-             return jsonify({'status': 'error', 'message': 'Failed to save message to Redis store.'}), 500
-        except Exception as redis_other_err:
-             print(f"ERROR saving to Redis (non-API error): {redis_other_err}")
-             return jsonify({'status': 'error', 'message': 'Failed to save message to Redis store.'}), 500
+        # except redis.exceptions.RedisError as redis_err:
+        #      print(f"ERROR during Redis command: {redis_err}")
+        #      return jsonify({'status': 'error', 'message': 'Failed to save message to Redis store.'}), 500
+        # except Exception as redis_other_err:
+        #      print(f"ERROR saving to Redis (non-API error): {redis_other_err}")
+        #      return jsonify({'status': 'error', 'message': 'Failed to save message to Redis store.'}), 500
 
         print(f"Successfully saved message to Redis: {message_text}")
         return jsonify({'status': 'success', 'message': 'Message received and saved successfully.'}), 200
