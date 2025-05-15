@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>A Tribute to Chris Glass</title> <script src="https://cdn.tailwindcss.com"></script>
+    <title>A Tribute to Chris Glass - Full Integration POC</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <style>
         /* Custom styles */
@@ -13,46 +14,102 @@
             min-height: 100vh; background-color: #f0f4f8; padding: 2rem;
             position: relative;
         }
-        #visualization {
+        #visualization { /* Tree visualization */
             border: 1px solid #d1d5db; background-color: #ffffff;
             border-radius: 0.5rem; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             width: 100%; max-width: 800px; height: 500px;
             overflow: hidden; position: relative;
-            border-bottom-left-radius: 0; border-bottom-right-radius: 0;
-            border-bottom: none;
+            margin-bottom: 1.5rem;
         }
-        /* Removed input area styling */
-        textarea { resize: none; }
-        button { transition: background-color 0.3s ease, transform 0.1s ease; }
-        button:hover { transform: translateY(-1px); }
-        button:active { transform: translateY(0px); }
         #message-box {
             position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
             padding: 10px 20px; background-color: rgba(0, 0, 0, 0.7); color: white;
             border-radius: 5px; display: none; z-index: 1000; font-size: 0.9rem;
         }
-        /* Tree styles (No change) */
+        /* Tree styles */
         .trunk { fill: #5D4037; stroke: #4E342E; stroke-width: 1; }
         .branch { fill: none; stroke: #6D4C41; stroke-linecap: round; stroke-linejoin: round; }
         .fruit { stroke: rgba(0,0,0,0.2); stroke-width: 0.5px; cursor: pointer; transition: transform 0.2s ease-out; }
         .leaf { stroke: #388E3C; stroke-width: 0.5px; }
         .new-leaf { stroke: #66BB6A; stroke-width: 0.5px; cursor: pointer; transition: transform 0.2s ease-out; }
-        /* Animations (No change) */
+        /* Animations */
         @keyframes sway { 0%, 100% { transform-origin: bottom center; transform: rotate(-1deg); } 50% { transform-origin: bottom center; transform: rotate(1deg); } }
         .leaf-sway { animation: sway 5s ease-in-out infinite alternate; }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
         .pulse-effect { animation: pulse 0.6s ease-out 1; }
-        /* Tooltip Style (No change) */
-        #tooltip { position: absolute; display: none; background-color: rgba(0, 0, 0, 0.8); color: white; padding: 8px 12px; border-radius: 4px; font-size: 0.85rem; max-width: 250px; text-align: center; pointer-events: none; z-index: 1010; white-space: normal; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
-        /* Text Feed Styles (No change) */
-        #text-feed-container { width: 100%; max-width: 800px; height: 100px; background-color: #e2d8ce; border: 1px solid #d1c7bd; border-top: none; border-radius: 0.5rem; border-top-left-radius: 0; border-top-right-radius: 0; padding: 10px 15px; overflow: hidden; position: relative; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); margin-top: 0; margin-bottom: 1.5rem; }
-        #text-feed { height: 100%; display: flex; flex-direction: column; justify-content: flex-start; }
-        #text-feed p { color: #4d4030; font-size: 0.9rem; padding: 4px 0; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: 1; transition: opacity 0.5s ease-in-out; flex-shrink: 0; }
-        #text-feed p.fade-out { opacity: 0; }
+
+        /* Tooltip Style (shared for tree and constellation) */
+        #tooltip {
+            position: absolute; display: none; background-color: rgba(0, 0, 0, 0.85);
+            color: white; padding: 10px 15px; border-radius: 6px; font-size: 0.9rem;
+            max-width: 300px; text-align: left; pointer-events: none;
+            z-index: 1010; white-space: normal; box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+            line-height: 1.5;
+        }
+        #tooltip strong { color: #f3d03e; /* BC Gold for emphasis */ }
+        #tooltip .message-text { display: block; margin-bottom: 5px; font-style: italic; }
+        #tooltip .author-detail { font-size: 0.8rem; opacity: 0.9; display: block; }
+        #tooltip .tooltip-title { font-weight: bold; font-size: 1rem; margin-bottom: 4px; color: #f3d03e;}
+
+
+        /* Image Styles */
+        #tribute-image-container {
+            width: 100%; max-width: 600px; margin: 0 auto 2rem auto;
+            border-radius: 0.5rem; box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        #tribute-image-container img { display: block; width: 100%; height: auto; border-radius: 0.5rem; }
+
+        /* Poem Styles */
+        #poem-container {
+            width: 100%; max-width: 800px; margin-top: 1rem; padding: 1.5rem;
+            background-color: #fafafa; border-radius: 0.5rem; box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+            color: #4a4a4a; line-height: 1.8; font-family: 'Georgia', serif;
+        }
+        #poem-container h3 { font-family: 'Inter', sans-serif; text-align: center; font-size: 1.5rem; font-weight: 600; color: #8C2232; margin-bottom: 1.5rem; }
+        #poem-container p { margin-bottom: 1rem; text-align: center; }
+        #poem-container p.signature { margin-top: 2rem; font-style: italic; font-size: 0.9rem; }
+
+        /* --- Constellation Section Styles --- */
+        #constellation-section {
+            width: 100%;
+            max-width: 800px;
+            margin-top: 2.5rem; /* Added margin to separate from poem */
+            padding: 1.5rem;
+            background-color: #0a192f; /* Dark navy blue background */
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        #constellation-section h3 {
+            font-family: 'Inter', sans-serif; text-align: center; font-size: 1.5rem;
+            font-weight: 600; color: #f3d03e; /* BC Gold for title */
+            margin-bottom: 1.5rem;
+        }
+        #constellation-visualization {
+            width: 100%;
+            height: 300px; /* Adjust as needed */
+            position: relative; /* For D3 positioning */
+        }
+        .star {
+            fill: #ffffff; /* White stars */
+            stroke: #f3d03e; /* Gold border */
+            stroke-width: 0.5px;
+            cursor: pointer;
+            transition: r 0.2s ease-in-out, fill 0.2s ease-in-out;
+        }
+        .star:hover {
+            fill: #f3d03e; /* Gold on hover */
+        }
+        .constellation-line {
+            stroke: rgba(255, 255, 255, 0.2); /* Faint white lines */
+            stroke-width: 0.5px;
+            stroke-dasharray: 2 2; /* Dashed lines */
+        }
+
     </style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Georgia&display=swap" rel="stylesheet">
 </head>
 <body class="bg-gradient-to-br from-yellow-50 via-red-50 to-gray-100">
 
@@ -62,14 +119,52 @@
     </p>
 
     <div class="w-full max-w-3xl">
-        <h2 class="text-xl font-semibold mb-0 text-center" style="color: #8C2232;">Our Flourishing Tree for Chris</h2>
-        <div id="visualization">
-            </div>
-        <div id="text-feed-container">
-            <div id="text-feed">
-                 </div>
-        </div>
+        <h2 class="text-xl font-semibold mb-2 text-center" style="color: #8C2232;">Our Flourishing Tree for Chris</h2>
+        <div id="visualization"></div>
     </div>
+
+    <div id="tribute-image-container">
+        <img src="https://placehold.co/600x400/8C2232/FFFFFF?text=Replace+with+Your+Image&font=georgia" alt="Tribute Image for Chris Glass - Placeholder">
+    </div>
+
+    <div id="poem-container">
+        <h3>A Collective Verse</h3>
+        <p>Chris, you stood at the edge of our unseen horizons,<br>
+        a lighthouse igniting in us a spark we didn’t know we carried—<br>
+        the curiosity to lean into skholē’s quiet wonder,<br>
+        the courage to believe in ourselves when doubt raged like high tide.</p>
+        <p>You saw Olga’s hidden seedling of promise and said,<br> “Here—grow,” even when the soil felt rocky,<br> watering our ambitions with your faith in goodness, justice,<br> and the bright tomorrow of universities yet to be built.</p>
+        <p>You’re part gardener, Julie whispers,<br> nurturing wild shoots of our own design—<br> deep caring in your hands, wise insight in your pruning shears—<br> helping us bloom into ourselves, not mirror images of you.</p>
+        <p>Amy marvels at your alchemy:<br> you taught her “good enough” is fertile ground,<br>
+        and yet coaxed a roar of voice from her quiet core—<br>
+        two truths dancing together, like twin flames of possibility.</p>
+        <p>You remind Luci to lift her gaze skyward,<br> to see beyond spreadsheets and syllabi,<br>
+        celebrating our sweat and strides with calm assurance—<br>
+        curing us, in cura personalis, with your generous spirit.</p>
+        <p>Maria, Roatha, and Katie carry your legacy as scholars and sherpas,<br> climbing intellectual peaks under a flag you planted—<br>
+        your authenticity a compass, your empathy the harness<br>
+        that kept our cohort safe as we stretched toward new summits.</p>
+        <p>Craig remembers how you believed in him first—<br>
+        a gentle push past our self-imposed ledges,<br>
+        proving that growth isn’t a lonely ascent but a shared expedition,<br>
+        fuelled by your unwavering commitment.</p>
+        <p>And Mark feels your wind at his back,<br>
+        the breath of your mentorship lifting us all beyond inertia,<br>
+        a glimpse of what education can become when led by heart,<br>
+        when stewarded by one who truly cares.</p>
+        <p class="signature">So here’s to you, Chris—the mentor who maps our climbs,<br>
+        the gardener of gaps, the architect of belonging,<br>
+        the coach, the guide, the spark plug of our brightest selves.<br>
+        May this poem carry into your world a fraction of the light<br>
+        you’ve shone into ours.</p>
+    </div>
+
+    <section id="constellation-section">
+        <h3>Constellation of Cohorts</h3>
+        <div id="constellation-visualization">
+            </div>
+    </section>
+
 
     <div id="message-box"></div>
     <div id="tooltip"></div>
@@ -77,11 +172,12 @@
     <script>
         // --- Configuration ---
         const vizWidth = 800; const vizHeight = 500; const maxItems = 200; const fruitBaseSize = 6; const fruitSizeVariance = 12; const leafBaseSize = 4; const leafSizeVariance = 5; const staticLeafCount = 30; const sparkleCount = 5; const highlyPositiveThreshold = 0.8;
-        const maxFeedMessages = 5;
-        const messageLoadDelay = 150; // ms delay between adding each message
+        const messageLoadDelay = 150;
+        const constellationWidth = 800;
+        const constellationHeight = 300;
+        const starBaseRadius = 4;
 
-        // --- NEW: Preloaded Messages Array ---
-        // Add your messages here as strings in the array
+        // --- Preloaded Messages Array ---
         const preloadedMessages = [
             "Chris, thank you for recognizing the potential in me that I hadn’t yet seen — and for giving me the chance to grow, even in the face of obstacles. Your unwavering belief in goodness, justice, and the bright future of universities inspires us all to carry this vision into the world! -Olga",
             "Chris, you embody all I value in a mentor—deep caring, wise insights, and the desire to help those you mentor grow more fully into themselves rather than become clones of you! I am ever grateful for your mentoring, your belief in me, and the goodness you bring to the world! -Julie",
@@ -94,142 +190,311 @@
             "Chris, thank you for being the coach, leader, and mentor we each needed in different moments. You thoughtfully crafted a group of individuals who supported each other, grew together, and empowered each other to achieve hard things. You were the wind at our backs the whole way, showing us that education matters and a glimpse of what the future of education can look like. Thank you for leading by example and caring so deeply. -Mark"
         ];
 
-        // Colors (Remain the same)
+        // --- Cohort Data ---
+        const cohortData = [
+            { firstName: "Parth Avinash", lastName: "Sarwate", position: "Director for the Office of Undergraduate Admissions and Financial Aid", institution: "Ahmedabad University", interests: "non-profits, school education reform, designing universities for social impact, teacher training, School of Education", cohort: "C2", catholicConcentration: "" },
+            { firstName: "Katie", lastName: "Gillette", position: "Assistant Dean", institution: "Augustine Institute Graduate School of Theology", interests: "Catholic Higher Education, online education, whole-person Catholic education, mission-driven leadership", cohort: "C2", catholicConcentration: "CC" },
+            { firstName: "Luci", lastName: "Ramos Hoppe", position: "Clinical Associate Professor and Undergraduate Program Director", institution: "Baylor University", interests: "First-generation & URM college students, student access & retention, curricular assessment, spending time with family", cohort: "C2", catholicConcentration: "" },
+            { firstName: "Ashana", lastName: "Hurd", position: "Assistant Dean of Professional Development and Urban Outreach", institution: "Boston College", interests: "urban public schools, teacher preparation, in-service programming for educators, urban school education and administration", cohort: "C2", catholicConcentration: "" },
+            { firstName: "Roatha", lastName: "Kong", position: "Director, Office of Student Involvement", institution: "Boston College", interests: "student engagement and involvement, college access programs and policies, exploring outdoors, travel, podcasts and audiobooks", cohort: "C2", catholicConcentration: "" },
+            { firstName: "Maria", lastName: "Lockheardt", position: "Executive Director of Development", institution: "Boston College", interests: "STEM initiatives, international fundraising, art history, museums and cultural institutions", cohort: "C2", catholicConcentration: "" },
+            { firstName: "Larry", lastName: "Pickener", position: "Director of Global Education", institution: "Boston College", interests: "advising students on abroad opportunities, reading, music, coaching his daughter in sports", cohort: "C2", catholicConcentration: "" },
+            { firstName: "Mark", lastName: "Green", position: "Vice President for Institutional Effectiveness, Technology, and Innovation", institution: "Holy Family University", interests: "data use for planning, evaluation, and decision-making in higher education; running; spending time with family", cohort: "C2", catholicConcentration: "CC" },
+            { firstName: "Armando", lastName: "Borja", position: "Chief Operations Officer", institution: "Jesuit Worldwide Learning", interests: "social development, humanitarian and natural disaster crisis response, contextually appropriate access to intercultural education", cohort: "C2", catholicConcentration: "CC" },
+            { firstName: "Rachel", lastName: "Chamberlain", position: "Manager of Education, Outreach & Digital Resources", institution: "McMullen Museum of Art", interests: "arts accessibility, diversity, and inclusion; cooking; pastries; wood working; hiking; thrifting; mushroom hunting; gardening", cohort: "C2", catholicConcentration: "" },
+            { firstName: "Amy", lastName: "Tiberio", position: "Vice President for Enrollment Management", institution: "Roger Williams University", interests: "access to higher education for marginalized populations, yoga, nature, hiking, snowshoeing, travel, reading", cohort: "C2", catholicConcentration: "" },
+            { firstName: "Olga", lastName: "Nazaykinskaya", position: "Director of Education Development Center", institution: "SKOLKOVO Moscow School of Management", interests: "educational programs for university executives and teams, consulting for educational and research institutions, trail running", cohort: "C2", catholicConcentration: "" },
+            { firstName: "Julie", lastName: "Donovan Massey", position: "Consultant/Network for Vocation in Undergraduate Education", institution: "St. Norbert College", interests: "Catholic higher education, social justice, mission and ministry", cohort: "C2", catholicConcentration: "CC" },
+            { firstName: "Craig", lastName: "Elmore", position: "Controller", institution: "Univerity of Chicago", interests: "higher education accounting and finance, spending time with family and friends", cohort: "C2", catholicConcentration: "" },
+            { firstName: "Luis", lastName: "Kauachi Legorreta", position: "Director of Internationalization", institution: "Universidad Iberoamericana - Ciudad de Mexico", interests: "Higher Ed Internationalization, Strategic Planning for International Ed, Higher Ed / International Ed in the Americas, Academic Cooperation", cohort: "C2", catholicConcentration: "" }
+        ];
+        // const cohortMap = new Map(cohortData.map(person => [`${person.firstName.toLowerCase()}_${person.lastName.toLowerCase()}`, person]));
+
+        // Colors
         const bcMaroon = "#8C2232"; const bcGold = "#F3D03E"; const lightGold = "#FAD961"; const darkMaroon = "#A54857"; const neutralGray = "#A0A0A0"; const darkGray = "#708090"; const leafGreen = "#4CAF50"; const newLeafGreen = "#81C784"; const branchColor = "#6D4C41"; const trunkColor = "#5D4037"; const sparkleColor = "#FFD700";
 
-        // --- D3 Setup --- (Remains the same)
-        const svg = d3.select("#visualization").append("svg").attr("viewBox", `0 0 ${vizWidth} ${vizHeight}`).attr("preserveAspectRatio", "xMidYMid meet").style("width", "100%").style("height", "100%");
-        const defs = svg.append("defs");
-        const goldGradient = defs.append("radialGradient").attr("id", "goldGradient").attr("cx", "50%").attr("cy", "50%").attr("r", "50%").attr("fx", "50%").attr("fy", "50%"); goldGradient.append("stop").attr("offset", "0%").style("stop-color", lightGold); goldGradient.append("stop").attr("offset", "100%").style("stop-color", bcGold);
-        const maroonGradient = defs.append("radialGradient").attr("id", "maroonGradient").attr("cx", "50%").attr("cy", "50%").attr("r", "50%").attr("fx", "50%").attr("fy", "50%"); maroonGradient.append("stop").attr("offset", "0%").style("stop-color", darkMaroon); maroonGradient.append("stop").attr("offset", "100%").style("stop-color", bcMaroon);
-        const grayGradient = defs.append("radialGradient").attr("id", "grayGradient").attr("cx", "50%").attr("cy", "50%").attr("r", "50%").attr("fx", "50%").attr("fy", "50%"); grayGradient.append("stop").attr("offset", "0%").style("stop-color", neutralGray); grayGradient.append("stop").attr("offset", "100%").style("stop-color", darkGray);
+        // --- D3 Setup (Tree) ---
+        const treeVizSvg = d3.select("#visualization").append("svg").attr("viewBox", `0 0 ${vizWidth} ${vizHeight}`).attr("preserveAspectRatio", "xMidYMid meet").style("width", "100%").style("height", "100%");
+        const treeDefs = treeVizSvg.append("defs");
+        const goldGradient = treeDefs.append("radialGradient").attr("id", "goldGradient").attr("cx", "50%").attr("cy", "50%").attr("r", "50%").attr("fx", "50%").attr("fy", "50%"); goldGradient.append("stop").attr("offset", "0%").style("stop-color", lightGold); goldGradient.append("stop").attr("offset", "100%").style("stop-color", bcGold);
+        const maroonGradient = treeDefs.append("radialGradient").attr("id", "maroonGradient").attr("cx", "50%").attr("cy", "50%").attr("r", "50%").attr("fx", "50%").attr("fy", "50%"); maroonGradient.append("stop").attr("offset", "0%").style("stop-color", darkMaroon); maroonGradient.append("stop").attr("offset", "100%").style("stop-color", bcMaroon);
+        const grayGradient = treeDefs.append("radialGradient").attr("id", "grayGradient").attr("cx", "50%").attr("cy", "50%").attr("r", "50%").attr("fx", "50%").attr("fy", "50%"); grayGradient.append("stop").attr("offset", "0%").style("stop-color", neutralGray); grayGradient.append("stop").attr("offset", "100%").style("stop-color", darkGray);
 
-        // --- Draw Static Tree --- (Remains the same)
-        const treeGroup = svg.append("g").attr("class", "tree");
+        // --- Draw Static Tree ---
+        const treeGroup = treeVizSvg.append("g").attr("class", "tree");
         const trunkWidth = 40; treeGroup.append("rect").attr("class", "trunk").attr("x", vizWidth / 2 - trunkWidth / 2).attr("y", vizHeight * 0.7).attr("width", trunkWidth).attr("height", vizHeight * 0.3).attr("rx", 5).attr("ry", 5).style("fill", trunkColor);
         const branchPathData = [ { d: `M ${vizWidth/2},${vizHeight*0.7} Q ${vizWidth*0.3},${vizHeight*0.6} ${vizWidth*0.25},${vizHeight*0.3}`, sw: 12 }, { d: `M ${vizWidth*0.25},${vizHeight*0.3} Q ${vizWidth*0.15},${vizHeight*0.2} ${vizWidth*0.2},${vizHeight*0.1}`, sw: 8 }, { d: `M ${vizWidth*0.25},${vizHeight*0.3} Q ${vizWidth*0.3},${vizHeight*0.15} ${vizWidth*0.35},${vizHeight*0.1}`, sw: 8 }, { d: `M ${vizWidth/2},${vizHeight*0.7} Q ${vizWidth*0.7},${vizHeight*0.6} ${vizWidth*0.75},${vizHeight*0.3}`, sw: 12 }, { d: `M ${vizWidth*0.75},${vizHeight*0.3} Q ${vizWidth*0.85},${vizHeight*0.2} ${vizWidth*0.8},${vizHeight*0.1}`, sw: 8 }, { d: `M ${vizWidth*0.75},${vizHeight*0.3} Q ${vizWidth*0.7},${vizHeight*0.15} ${vizWidth*0.65},${vizHeight*0.1}`, sw: 8 }, { d: `M ${vizWidth/2},${vizHeight*0.7} Q ${vizWidth*0.5},${vizHeight*0.4} ${vizWidth*0.5},${vizHeight*0.2}`, sw: 10 }, { d: `M ${vizWidth*0.5},${vizHeight*0.2} Q ${vizWidth*0.45},${vizHeight*0.1} ${vizWidth*0.5},${vizHeight*0.05}`, sw: 7 }, ];
         const branches = treeGroup.selectAll(".branch").data(branchPathData).enter().append("path").attr("class", "branch").attr("d", d => d.d).style("stroke", branchColor).style("stroke-width", d => d.sw);
         const branchNodes = branches.nodes();
 
-        // --- Groups for dynamic elements --- (Remains the same)
-        const staticLeafGroup = svg.append("g").attr("class", "static-leaves");
-        const fruitGroup = svg.append("g").attr("class", "fruits");
-        const dynamicLeafGroup = svg.append("g").attr("class", "dynamic-leaves");
-        const sparkleGroup = svg.append("g").attr("class", "sparkles");
+        // --- Groups for dynamic tree elements ---
+        const staticLeafGroup = treeVizSvg.append("g").attr("class", "static-leaves");
+        const fruitGroup = treeVizSvg.append("g").attr("class", "fruits");
+        const dynamicLeafGroup = treeVizSvg.append("g").attr("class", "dynamic-leaves");
+        const sparkleGroup = treeVizSvg.append("g").attr("class", "sparkles");
 
         let dynamicItemsData = [];
-        let feedMessagesData = [];
 
-        // --- Helper: Get point along a path --- (Remains the same)
+        // --- Helper: Get point along a path ---
         function getPointOnBranch(branchIndex, t) { const node = branchNodes[branchIndex]; const pathLength = node.getTotalLength(); return node.getPointAtLength(pathLength * t); }
 
-        // --- Draw Static Leaves --- (Remains the same)
-        function drawStaticLeaves() { const staticLeavesData = []; for (let i = 0; i < staticLeafCount; i++) { const randomBranchIndex = Math.floor(Math.random() * branchNodes.length); const t = Math.random() * 0.5 + 0.5; const point = getPointOnBranch(randomBranchIndex, t); const angle = Math.random() * Math.PI * 2; const offsetDist = Math.random() * 15 + 5; point.x += offsetDist * Math.cos(angle); point.y += offsetDist * Math.sin(angle); point.x = Math.max(leafBaseSize, Math.min(vizWidth - leafBaseSize, point.x)); point.y = Math.max(leafBaseSize, Math.min(vizHeight - leafBaseSize, point.y)); staticLeavesData.push({ x: point.x, y: point.y, size: leafBaseSize + Math.random() * leafSizeVariance, rotation: Math.random() * 60 - 30 }); } staticLeafGroup.selectAll("ellipse.leaf").data(staticLeavesData).enter().append("ellipse").attr("class", "leaf leaf-sway").attr("cx", d => d.x).attr("cy", d => d.y).attr("rx", d => d.size * 0.6).attr("ry", d => d.size).style("fill", leafGreen).attr("transform", d => `rotate(${d.rotation}, ${d.x}, ${d.y})`); }
+        // --- Draw Static Leaves ---
+        function drawStaticLeaves() {
+             const staticLeavesData = []; for (let i = 0; i < staticLeafCount; i++) { const randomBranchIndex = Math.floor(Math.random() * branchNodes.length); const t = Math.random() * 0.5 + 0.5; const point = getPointOnBranch(randomBranchIndex, t); const angle = Math.random() * Math.PI * 2; const offsetDist = Math.random() * 15 + 5; point.x += offsetDist * Math.cos(angle); point.y += offsetDist * Math.sin(angle); point.x = Math.max(leafBaseSize, Math.min(vizWidth - leafBaseSize, point.x)); point.y = Math.max(leafBaseSize, Math.min(vizHeight - leafBaseSize, point.y)); staticLeavesData.push({ x: point.x, y: point.y, size: leafBaseSize + Math.random() * leafSizeVariance, rotation: Math.random() * 60 - 30 }); } staticLeafGroup.selectAll("ellipse.leaf").data(staticLeavesData).enter().append("ellipse").attr("class", "leaf leaf-sway").attr("cx", d => d.x).attr("cy", d => d.y).attr("rx", d => d.size * 0.6).attr("ry", d => d.size).style("fill", leafGreen).attr("transform", d => `rotate(${d.rotation}, ${d.x}, ${d.y})`);
+        }
 
         // --- DOM Elements ---
         const messageBox = document.getElementById('message-box');
         const tooltip = document.getElementById('tooltip');
-        const textFeed = d3.select('#text-feed');
+        const constellationViz = d3.select("#constellation-visualization").append("svg")
+            .attr("viewBox", `0 0 ${constellationWidth} ${constellationHeight}`)
+            .attr("preserveAspectRatio", "xMidYMid meet")
+            .style("width", "100%")
+            .style("height", "100%");
+        const constellationLinesGroup = constellationViz.append("g").attr("class", "constellation-lines");
+        const constellationStarsGroup = constellationViz.append("g").attr("class", "constellation-stars");
 
-        // --- Simulated Sentiment Analysis --- (Remains the same)
-        function simulateSentiment(text) { const length = text.trim().length; let score = 0; if (length === 0) return { score: 0, category: 'neutral' }; score += Math.min(length / 100, 0.5); const positiveKeywords = ['thank', 'appreciate', 'inspire', 'grateful', 'amazing', 'wonderful', 'excellent', 'great', 'love', 'joy', 'proud', 'support', 'growth', 'flourish', 'congrats', 'congratulations']; const negativeKeywords = ['concern', 'challenge', 'difficult', 'improve', 'but', 'however']; const words = text.toLowerCase().split(/\s+/); words.forEach(word => { if (positiveKeywords.includes(word)) score += 0.25; if (negativeKeywords.includes(word)) score -= 0.05; }); score = Math.max(-0.5, Math.min(1, score)); let category = 'neutral'; if (score > 0.3) category = 'positive'; else if (score < 0) category = 'negative'; return { score, category }; }
 
-        // --- Map Sentiment to Visuals --- (Remains the same)
-        function mapSentimentToVisuals(sentiment, messageText) { const { score, category } = sentiment; let fruitGradientUrl, fruitSize, leafSize = null, leafColor = null, leafMessage = null; if (category === 'positive') { fruitGradientUrl = "url(#goldGradient)"; fruitSize = fruitBaseSize + Math.max(0, score) * fruitSizeVariance; leafSize = leafBaseSize + Math.max(0, score) * leafSizeVariance * 0.7; leafColor = newLeafGreen; leafMessage = messageText; } else if (category === 'negative') { fruitGradientUrl = "url(#grayGradient)"; fruitSize = fruitBaseSize + Math.max(0, score) * fruitSizeVariance; } else { fruitGradientUrl = "url(#maroonGradient)"; fruitSize = fruitBaseSize; } return { type: 'fruit', size: fruitSize, color: fruitGradientUrl, category: category, score: score, message: messageText, ...(leafSize && { leafData: { type: 'leaf', size: leafSize, color: leafColor, message: leafMessage } }) }; }
+        // --- Simulated Sentiment Analysis ---
+        function simulateSentiment(text) { const length = text.trim().length; let score = 0; if (length === 0) return { score: 0, category: 'neutral' }; score += Math.min(length / 100, 0.5); const positiveKeywords = ['thank', 'appreciate', 'inspire', 'grateful', 'amazing', 'wonderful', 'excellent', 'great', 'love', 'joy', 'proud', 'support', 'growth', 'flourish', 'congrats', 'congratulations', 'gift', 'gifts', 'caring', 'belief', 'faith', 'courage', 'community', 'authentic', 'empathetic', 'vision']; const negativeKeywords = ['concern', 'challenge', 'difficult', 'improve', 'but', 'however', 'doubt', 'obstacles']; const words = text.toLowerCase().split(/\s+/); words.forEach(word => { if (positiveKeywords.includes(word)) score += 0.25; if (negativeKeywords.includes(word)) score -= 0.05; }); score = Math.max(-0.5, Math.min(1, score)); let category = 'neutral'; if (score > 0.3) category = 'positive'; else if (score < 0) category = 'negative'; return { score, category }; }
 
-        // --- Calculate Item Position --- (Remains the same)
+        // --- Map Sentiment to Visuals ---
+        function mapSentimentToVisuals(sentiment, messageText, author) {
+            const { score, category } = sentiment;
+            let fruitGradientUrl, fruitSize, leafSize = null, leafColor = null;
+            if (category === 'positive') { fruitGradientUrl = "url(#goldGradient)"; fruitSize = fruitBaseSize + Math.max(0, score) * fruitSizeVariance; leafSize = leafBaseSize + Math.max(0, score) * leafSizeVariance * 0.7; leafColor = newLeafGreen; } else if (category === 'negative') { fruitGradientUrl = "url(#grayGradient)"; fruitSize = fruitBaseSize + Math.max(0, score) * fruitSizeVariance; } else { fruitGradientUrl = "url(#maroonGradient)"; fruitSize = fruitBaseSize; }
+            return { type: 'fruit', size: fruitSize, color: fruitGradientUrl, category: category, score: score, message: messageText, author: author,
+                     ...(leafSize && { leafData: { type: 'leaf', size: leafSize, color: leafColor, message: messageText, author: author } }) };
+        }
+
+        // --- Calculate Item Position (for Tree) ---
         function calculateItemPosition(itemSize) { const randomBranchIndex = Math.floor(Math.random() * branchNodes.length); const t = Math.random() * 0.6 + 0.4; const point = getPointOnBranch(randomBranchIndex, t); const angle = Math.random() * Math.PI * 2; const offsetDist = Math.random() * 10 + 5; point.x += offsetDist * Math.cos(angle); point.y -= offsetDist * Math.sin(angle); point.x = Math.max(itemSize, Math.min(vizWidth - itemSize, point.x)); point.y = Math.max(itemSize, Math.min(vizHeight - itemSize, point.y)); return { x: point.x, y: point.y }; }
 
-        // --- Create Sparkles --- (Remains the same)
+        // --- Create Sparkles ---
         function createSparkles(x, y) { for (let i = 0; i < sparkleCount; i++) { const angle = Math.random() * 2 * Math.PI; const distance = Math.random() * 15 + 5; const startX = x + distance * Math.cos(angle); const startY = y + distance * Math.sin(angle); const sparkleSize = Math.random() * 2 + 1; sparkleGroup.append("circle").attr("cx", startX).attr("cy", startY).attr("r", 0).style("fill", sparkleColor).style("opacity", 1).transition().duration(600 + Math.random() * 400).ease(d3.easeQuadOut).attr("r", sparkleSize).style("opacity", 0).remove(); } }
 
-         // --- Tooltip Hover Handlers --- (Remains the same)
-         function handleMouseOver(event, d) { d3.select(this).transition().duration(150).attr("transform", `translate(${d.x || 0}, ${d.y || 0}) scale(1.4) translate(${-d.x || 0}, ${-d.y || 0})`); if (d.message) { tooltip.textContent = d.message; tooltip.style.display = 'block'; tooltip.style.left = (event.pageX + 15) + 'px'; tooltip.style.top = (event.pageY + 15) + 'px'; } }
-         function handleMouseOut(event, d) { d3.select(this).transition().duration(150).attr("transform", `translate(${d.x || 0}, ${d.y || 0}) scale(1.0) translate(${-d.x || 0}, ${-d.y || 0})`); tooltip.style.display = 'none'; }
+         // --- Tooltip Hover Handlers (Tree & Constellation) ---
+         function handleTreeItemMouseOver(event, d) {
+             console.log("Tree item mouseover, data:", d);
+             d3.select(this).transition().duration(150).attr("transform", `translate(${d.x || 0}, ${d.y || 0}) scale(1.4) translate(${-d.x || 0}, ${-d.y || 0})`);
+             if (d.message) {
+                 let tooltipContent = `<span class="message-text">"${d.message}"</span>`;
+                 if (d.author) {
+                     tooltipContent += `<span class="author-detail"><strong>By:</strong> ${d.author.firstName} ${d.author.lastName}</span>`;
+                     tooltipContent += `<span class="author-detail"><strong>Role:</strong> ${d.author.position}, ${d.author.institution}</span>`;
+                 }
+                 tooltip.innerHTML = tooltipContent;
+                 tooltip.style.display = 'block';
+                 tooltip.style.left = (event.pageX + 15) + 'px';
+                 tooltip.style.top = (event.pageY + 15) + 'px';
+             } else {
+                 console.warn("Tooltip: d.message is undefined or empty for tree item", d);
+             }
+         }
+         function handleTreeItemMouseOut(event, d) {
+            d3.select(this).transition().duration(150).attr("transform", `translate(${d.x || 0}, ${d.y || 0}) scale(1.0) translate(${-d.x || 0}, ${-d.y || 0})`);
+            tooltip.style.display = 'none';
+         }
 
-        // --- Update Tree Visualization --- (Remains the same)
-        function addTributeToTree(visualParams, messageText) {
+        // --- Update Tree Visualization ---
+        function addTributeToTree(visualParams, messageText, author) {
+            console.log("addTributeToTree called with visualParams:", JSON.parse(JSON.stringify(visualParams)), "messageText:", messageText, "author:", author ? `${author.firstName} ${author.lastName}` : "None");
             const fruitPosition = calculateItemPosition(visualParams.size);
-            const newFruit = { ...visualParams, ...fruitPosition, id: Date.now() + Math.random(), message: messageText };
+            const newFruit = { ...visualParams, ...fruitPosition, id: Date.now() + Math.random() };
+            console.log("New fruit data:", JSON.parse(JSON.stringify(newFruit)));
             dynamicItemsData.push(newFruit);
 
             if (visualParams.leafData) {
                 const leafPosition = calculateItemPosition(visualParams.leafData.size);
-                leafPosition.x += (Math.random() - 0.5) * 10; leafPosition.y += (Math.random() - 0.5) * 10;
-                const newLeaf = { ...visualParams.leafData, ...leafPosition, id: Date.now() + Math.random(), message: messageText };
+                const newLeaf = { ...visualParams.leafData, ...leafPosition, id: Date.now() + Math.random() };
+                console.log("New leaf data:", JSON.parse(JSON.stringify(newLeaf)));
                 dynamicItemsData.push(newLeaf);
             }
             updateD3Visualization();
         }
 
-        // --- D3 Update Function --- (Remains the same)
+        // --- D3 Update Function (Tree) ---
         function updateD3Visualization() {
+             console.log("updateD3Visualization called. dynamicItemsData length:", dynamicItemsData.length);
+             if (dynamicItemsData.length > 0) {
+                 console.log("First item in dynamicItemsData for D3 update:", JSON.parse(JSON.stringify(dynamicItemsData[0])));
+             }
              const displayData = dynamicItemsData.slice(-maxItems);
+             console.log("DisplayData length for D3:", displayData.length);
+
              const fruits = fruitGroup.selectAll("circle.fruit").data(displayData.filter(d => d.type === 'fruit'), d => d.id);
+             console.log("D3 fruits selection - enter size:", fruits.enter().size(), "exit size:", fruits.exit().size());
              fruits.exit().transition().duration(600).attr("r", 0).style("opacity", 0).remove();
-             fruits.enter().append("circle").attr("class", "fruit").attr("cx", d => d.x).attr("cy", d => d.y).attr("r", 0).style("opacity", 0).attr("fill", d => d.color).on("mouseover", handleMouseOver).on("mouseout", handleMouseOut).transition().duration(900).ease(d3.easeBounceOut).attr("r", d => d.size).style("opacity", 0.9).each(function(d) { const element = d3.select(this); element.classed("pulse-effect", true); setTimeout(() => element.classed("pulse-effect", false), 600); if (d.category === 'positive' && d.score >= highlyPositiveThreshold) { createSparkles(d.x, d.y); } });
+             fruits.enter().append("circle").attr("class", "fruit").attr("cx", d => d.x).attr("cy", d => d.y).attr("r", 0).style("opacity", 0).attr("fill", d => d.color).on("mouseover", handleTreeItemMouseOver).on("mouseout", handleTreeItemMouseOut).transition().duration(900).ease(d3.easeBounceOut).attr("r", d => d.size).style("opacity", 0.9).each(function(d) { const element = d3.select(this); element.classed("pulse-effect", true); setTimeout(() => element.classed("pulse-effect", false), 600); if (d.category === 'positive' && d.score >= highlyPositiveThreshold) { createSparkles(d.x, d.y); } });
+
              const leaves = dynamicLeafGroup.selectAll("ellipse.new-leaf").data(displayData.filter(d => d.type === 'leaf'), d => d.id);
+             console.log("D3 leaves selection - enter size:", leaves.enter().size(), "exit size:", leaves.exit().size());
              leaves.exit().transition().duration(600).attr("rx", 0).attr("ry", 0).style("opacity", 0).remove();
-             leaves.enter().append("ellipse").attr("class", "new-leaf leaf-sway").attr("cx", d => d.x).attr("cy", d => d.y).attr("rx", 0).attr("ry", 0).style("opacity", 0).style("fill", d => d.color).attr("transform", d => `rotate(${Math.random()*40-20}, ${d.x}, ${d.y})`).on("mouseover", handleMouseOver).on("mouseout", handleMouseOut).transition().duration(1000).ease(d3.easeBackOut).attr("rx", d => d.size * 0.6).attr("ry", d => d.size).style("opacity", 0.8).each(function() { const element = d3.select(this); element.classed("pulse-effect", true); setTimeout(() => element.classed("pulse-effect", false), 600); });
+             leaves.enter().append("ellipse").attr("class", "new-leaf leaf-sway").attr("cx", d => d.x).attr("cy", d => d.y).attr("rx", 0).attr("ry", 0).style("opacity", 0).style("fill", d => d.color).attr("transform", d => `rotate(${Math.random()*40-20}, ${d.x}, ${d.y})`).on("mouseover", handleTreeItemMouseOver).on("mouseout", handleTreeItemMouseOut).transition().duration(1000).ease(d3.easeBackOut).attr("rx", d => d.size * 0.6).attr("ry", d => d.size).style("opacity", 0.8).each(function() { const element = d3.select(this); element.classed("pulse-effect", true); setTimeout(() => element.classed("pulse-effect", false), 600); });
         }
 
-        // --- Update Text Feed --- (Remains the same)
-        function updateTextFeed(newMessage) {
-            feedMessagesData.unshift({ id: Date.now(), text: newMessage });
-            if (feedMessagesData.length > maxFeedMessages) { feedMessagesData.pop(); }
-            const messages = textFeed.selectAll("p").data(feedMessagesData, d => d.id);
-            messages.exit().transition().duration(500).style("opacity", 0).remove();
-            messages.enter().insert("p", ":first-child").attr("class", "message-item").style("opacity", 0).text(d => d.text).transition().duration(500).style("opacity", 1);
-        }
+        // --- Show Notification Message ---
+        function showMessage(text, duration = 3000) { /* ... */ }
 
-        // --- Show Notification Message --- (Remains the same)
-        function showMessage(text, duration = 3000) { messageBox.textContent = text; messageBox.style.display = 'block'; setTimeout(() => { messageBox.style.display = 'none'; }, duration); }
-
-        // --- REMOVED: CSV processing functions and backend submit function ---
-
-        // --- NEW: Function to process preloaded messages ---
+        // --- Function to process preloaded messages ---
         function loadPreloadedMessages() {
             console.log(`Processing ${preloadedMessages.length} preloaded messages...`);
             showMessage(`Loading ${preloadedMessages.length} tributes...`, 4000);
 
-            // Clear existing dynamic items if any (e.g., if reloaded)
             dynamicItemsData = [];
-            feedMessagesData = [];
             fruitGroup.selectAll("*").remove();
             dynamicLeafGroup.selectAll("*").remove();
-            textFeed.selectAll("p").remove();
 
-            let delay = 500; // Initial delay before starting
+            let delay = 500;
 
-            preloadedMessages.forEach(message => {
-                if (message && message.trim()) { // Basic check for valid message
+            preloadedMessages.forEach((fullMessageString, index) => {
+                if (fullMessageString && fullMessageString.trim()) {
+                    let message = fullMessageString;
+                    let authorDetails = null;
+
+                    const signatureMatch = fullMessageString.match(/\s-\s*([A-Za-z]+(?:\s[A-Za-z]+)*)$/);
+                    if (signatureMatch && signatureMatch[1]) {
+                        const fullNameFromSignature = signatureMatch[1].trim();
+                        message = fullMessageString.substring(0, signatureMatch.index).trim();
+                        console.log(`Msg ${index}: Parsed message: "${message}", Signature found: "${fullNameFromSignature}"`);
+
+                        // Try to find author in cohortData by first name, then by full name
+                        authorDetails = cohortData.find(p =>
+                            p.firstName.toLowerCase() === fullNameFromSignature.toLowerCase() ||
+                            `${p.firstName.toLowerCase()} ${p.lastName.toLowerCase()}` === fullNameFromSignature.toLowerCase()
+                        );
+                        // If not found by direct match, try splitting signature and matching first name
+                        if (!authorDetails && fullNameFromSignature.includes(" ")) {
+                             const sigFirstName = fullNameFromSignature.split(" ")[0].toLowerCase();
+                             authorDetails = cohortData.find(p => p.firstName.toLowerCase() === sigFirstName);
+                        }
+                        console.log(`Msg ${index}: Author details found:`, authorDetails ? `${authorDetails.firstName} ${authorDetails.lastName}` : "None");
+                    } else {
+                        console.log(`Msg ${index}: No signature found for: "${fullMessageString.substring(0,30)}..."`);
+                    }
+
                     setTimeout(() => {
                         const sentiment = simulateSentiment(message);
-                        const visualParams = mapSentimentToVisuals(sentiment, message);
-                        addTributeToTree(visualParams, message); // Add fruit/leaf to tree data
-                        updateTextFeed(message); // Add message to feed
+                        const visualParams = mapSentimentToVisuals(sentiment, message, authorDetails);
+                        console.log(`Msg ${index} visualParams:`, JSON.parse(JSON.stringify(visualParams)));
+                        addTributeToTree(visualParams, message, authorDetails); // visualParams already contains message and author
                     }, delay);
-                    delay += messageLoadDelay; // Use configured delay
+                    delay += messageLoadDelay;
                 }
             });
 
-            // Final notification
             setTimeout(() => {
                  showMessage(`All ${preloadedMessages.length} tributes loaded!`, 4000);
-            }, delay + 500); // Show after last item has processed
+                 console.log("Final dynamicItemsData count:", dynamicItemsData.length);
+            }, delay + 500);
+        }
+
+        // --- Function to Draw Cohort Constellation ---
+        function drawCohortConstellation() {
+            if (!constellationViz || cohortData.length === 0) return;
+            console.log("Drawing constellation...");
+
+            const padding = 40;
+            const numConnectionsPerStar = 2;
+
+            const starsData = cohortData.map((person, index) => ({
+                ...person,
+                id: `${person.firstName}-${person.lastName}-${index}`,
+                x: Math.random() * (constellationWidth - 2 * padding) + padding,
+                y: Math.random() * (constellationHeight - 2 * padding) + padding,
+                radius: starBaseRadius + Math.random() * 2
+            }));
+
+            const linesData = [];
+            starsData.forEach((star, i) => {
+                for (let k = 0; k < numConnectionsPerStar; k++) {
+                    let randomTargetIndex;
+                    let attempts = 0;
+                    do {
+                        randomTargetIndex = Math.floor(Math.random() * starsData.length);
+                        attempts++;
+                    } while (randomTargetIndex === i && attempts < starsData.length * 2);
+
+                    if (randomTargetIndex !== i) {
+                        const targetStar = starsData[randomTargetIndex];
+                        const lineExists = linesData.some(l =>
+                            (l.source.id === star.id && l.target.id === targetStar.id) ||
+                            (l.source.id === targetStar.id && l.target.id === star.id)
+                        );
+                        if (!lineExists) {
+                             linesData.push({ source: star, target: targetStar });
+                        }
+                    }
+                }
+            });
+            for(let i = 0; i < starsData.length -1; i+= Math.floor(starsData.length/5) || 1){
+                const targetIndex = (i + Math.floor(starsData.length/3)) % starsData.length;
+                 if (i !== targetIndex) {
+                    const star = starsData[i];
+                    const targetStar = starsData[targetIndex];
+                    const lineExists = linesData.some(l =>(l.source.id === star.id && l.target.id === targetStar.id) || (l.source.id === targetStar.id && l.target.id === star.id));
+                    if(!lineExists) linesData.push({source: star, target: targetStar});
+                 }
+            }
+
+
+            constellationLinesGroup.selectAll("line.constellation-line")
+                .data(linesData)
+                .enter().append("line")
+                .attr("class", "constellation-line")
+                .attr("x1", d => d.source.x).attr("y1", d => d.source.y)
+                .attr("x2", d => d.target.x).attr("y2", d => d.target.y)
+                .style("opacity", 0).transition()
+                .delay((d,i) => i * 10 + starsData.length * 50)
+                .duration(1000).style("opacity", 1);
+
+            const stars = constellationStarsGroup.selectAll("circle.star")
+                .data(starsData, d => d.id);
+
+            stars.enter().append("circle").attr("class", "star")
+                .attr("cx", d => d.x).attr("cy", d => d.y)
+                .attr("r", 0).style("opacity", 0)
+                .on("mouseover", handleConstellationStarMouseOver)
+                .on("mouseout", handleConstellationStarMouseOut)
+                .transition().delay((d, i) => i * 50).duration(800)
+                .attr("r", d => d.radius).style("opacity", 0.8);
+            console.log("Constellation stars and lines drawn. Stars:", stars.size(), "Lines:", linesData.length);
+        }
+
+        // --- Tooltip Handlers for Constellation Stars (Interests Removed) ---
+        function handleConstellationStarMouseOver(event, d) {
+            d3.select(this).transition().duration(100).attr("r", d.radius * 2.0);
+            let tooltipContent = `<span class="tooltip-title">${d.firstName} ${d.lastName}</span>`;
+            // REMOVED: Position/Title line
+            tooltipContent += `<span class="author-detail">${d.institution}</span>`;
+            if (d.catholicConcentration) {
+                tooltipContent += `<span class="author-detail"><em>Catholic Concentration</em></span>`;
+            }
+            tooltip.innerHTML = tooltipContent;
+            tooltip.style.display = 'block';
+            const starRect = event.target.getBoundingClientRect();
+            const tooltipRect = tooltip.getBoundingClientRect();
+            let left = starRect.left + window.scrollX + starRect.width / 2 - tooltipRect.width / 2;
+            let top = starRect.top + window.scrollY - tooltipRect.height - 10;
+            if (left < 0) left = 5;
+            if (left + tooltipRect.width > window.innerWidth) left = window.innerWidth - tooltipRect.width - 5;
+            if (top < 0) top = starRect.bottom + window.scrollY + 10;
+            tooltip.style.left = left + 'px';
+            tooltip.style.top = top + 'px';
+        }
+        function handleConstellationStarMouseOut(event, d) {
+            d3.select(this).transition().duration(100).attr("r", d.radius);
+            tooltip.style.display = 'none';
         }
 
 
-        // --- Event Listeners ---
-        // REMOVED: CSV file input and load button listeners
-
         // --- Initial State ---
-        drawStaticLeaves(); // Draw the base tree
-        console.log("Tribute to Chris Glass Preloaded POC Initialized.");
+        console.log("Tribute to Chris Glass Full Integration POC Initialized.");
 
-        // --- NEW: Load messages when the page is fully loaded ---
         window.onload = () => {
+            drawStaticLeaves();
             loadPreloadedMessages();
+            drawCohortConstellation();
         };
 
     </script>
